@@ -79,7 +79,46 @@ if uploaded_files:
             summary[col] = f"{values.mean():.2f}" if not values.empty else "-"
         else:
             summary[col] = "-"
-    st.dataframe(pd.DataFrame(summary.items(), columns=["參數", "平均值"]).set_index("參數"))
+    st.markdown("---")
+    st.subheader("📌 常用參數彙總（根據檔案來源整理）")
+    from collections import defaultdict
+    collected = defaultdict(list)
+
+    for shortname, df in all_dataframes.items():
+        df_tail = df.tail(600).dropna(axis=0, how='all')
+        filetype = 'hw64'
+        if 'gpu' in shortname.lower():
+            filetype = 'gpumon'
+        elif 'ptat' in shortname.lower():
+            filetype = 'ptat'
+
+        if filetype == 'hw64':
+            keys = {k.strip(): k for k in df.columns if k.strip() in hw64_keys}
+        elif filetype == 'gpumon':
+            keys = {k.strip(): k for k in df.columns if k.strip() in gpumon_keys}
+        else:
+            keys = {k.strip(): k for k in df.columns if k.strip() in ptat_keys}
+
+        for colname in keys.values():
+            values = pd.to_numeric(df_tail[colname], errors='coerce').dropna()
+            avg = f"{values.mean():.2f}" if not values.empty else "-"
+            collected[colname].append(avg)
+
+    final_summary = {}
+    for col in common_param_order:
+        vals = collected.get(col, [])
+        if vals:
+            try:
+                # 轉數字求平均再取平均值
+                nums = [float(v) for v in vals if v.replace('.', '', 1).isdigit()]
+                avg_all = f"{np.mean(nums):.2f}" if nums else "-"
+            except:
+                avg_all = "-"
+        else:
+            avg_all = "-"
+        final_summary[col] = avg_all
+
+    st.dataframe(pd.DataFrame(final_summary.items(), columns=["參數", "平均值"]).set_index("參數"))
 
     chart_title = st.text_input("🖋️ 圖表標題", value="跨檔案多欄位比較圖")
 
