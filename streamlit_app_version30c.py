@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,7 +8,7 @@ def normalize(col):
     return col.strip().lower().replace(" ", "").replace(":", "").replace("（", "(").replace("）", ")")
 
 st.set_page_config(page_title="Thermal Log 分析工具", layout="wide")
-st.title("📊 Thermal Log 分析工具（Version 30：常用參數整合區塊）")
+st.title("📊 Thermal Log 分析工具（Version 31：常用參數立式顯示）")
 
 uploaded_files = st.file_uploader("請上傳 thermal log 的 CSV 檔（可多選）", type="csv", accept_multiple_files=True)
 
@@ -17,7 +16,7 @@ all_dataframes = {}
 file_column_selection = {}
 file_range_selection = {}
 valid_dataframes = []
-common_params = ['Total System Power [W]', 'CPU Package Power [W]', ' 1:TGP (W)', 'Charge Rate [W]', 'IA Cores Power [W]', 'GT Cores Power [W]', ' 1:NVVDD Power (W)', ' 1:FBVDD Power (W)', 'CPU Package [蚓]', ' 1:Temperature GPU (C)', ' 1:Temperature Memory (C)', 'Temp0 [蚓]', 'SEN1-temp(Degree C)', 'SEN2-temp(Degree C)', 'SEN3-temp(Degree C)', 'SEN4-temp(Degree C)', 'SEN5-temp(Degree C)', 'SEN6-temp(Degree C)', 'SEN7-temp(Degree C)', 'SEN8-temp(Degree C)', 'SEN9-temp(Degree C)']
+common_params = ['Total System Power [W]', 'CPU Package Power [W]', ' 1:TGP (W)', 'Charge Rate [W]', 'IA Cores Power [W]', 'GT Cores Power [W]', ' 1:NVVDD Power (W)', ' 1:FBVDD Power (W)', 'CPU Package [蟒]', ' 1:Temperature GPU (C)', ' 1:Temperature Memory (C)', 'Temp0 [蟒]', 'SEN1-temp(Degree C)', 'SEN2-temp(Degree C)', 'SEN3-temp(Degree C)', 'SEN4-temp(Degree C)', 'SEN5-temp(Degree C)', 'SEN6-temp(Degree C)', 'SEN7-temp(Degree C)', 'SEN8-temp(Degree C)', 'SEN9-temp(Degree C)']
 
 if uploaded_files:
     st.info("📌 每個檔案可選擇多個欄位與資料範圍，圖表支援高解析度（DPI 200）")
@@ -60,12 +59,9 @@ if uploaded_files:
         except Exception as e:
             st.error(f"❌ 檔案 {filename} 發生錯誤：{e}")
 
-    # 整合所有檔案在同一個區塊顯示常用參數平均值
+    # 整合常用參數顯示為立式表
     st.markdown("---")
-    
-    # 整合所有檔案在同一個區塊顯示常用參數平均值
-    st.markdown("---")
-    st.subheader("📌 常用參數快速分析（直式顯示）")
+    st.subheader("📌 常用參數快速分析（立式格式）")
 
     results = []
 
@@ -81,48 +77,15 @@ if uploaded_files:
                 row[col] = "-"
         results.append(row)
 
-    summary_df = pd.DataFrame(results)
-    summary_df = summary_df[["檔名"] + common_params]
+    # 逐份檔案立式顯示
+    for row in results:
+        st.markdown(f"#### 📁 檔案：`{row['檔名']}`")
+        param_list = [(param, row[param]) for param in common_params]
+        df_vertical = pd.DataFrame(param_list, columns=["參數名稱", "數值"])
+        st.dataframe(df_vertical)
 
-    for idx, row in summary_df.iterrows():
-        st.markdown(f"**📁 檔案：{row['檔名']}**")
-        transposed_df = pd.DataFrame({
-            "參數名稱": common_params,
-            "數值": [row[col] for col in common_params]
-        })
-        st.dataframe(transposed_df, use_container_width=True)
-
-
-    results = []
-
-    for shortname, df in valid_dataframes:
-        df_tail = df.tail(600)
-        row = {"檔名": shortname}
-        for col in common_params:
-            match = [c for c in df_tail.columns if normalize(c) == normalize(col)]
-            if match:
-                values = pd.to_numeric(df_tail[match[0]], errors='coerce').dropna()
-                row[col] = f"{values.mean():.2f}" if not values.empty else "-"
-            else:
-                row[col] = "-"
-        results.append(row)
-
-    
-summary_df = pd.DataFrame(results)
-summary_df = summary_df[["檔名"] + common_params]
-
-st.markdown("### 📌 常用參數快速分析（直式顯示）")
-
-for idx, row in summary_df.iterrows():
-    st.markdown(f"**📁 檔案：{row['檔名']}**")
-    transposed_df = pd.DataFrame({
-        "參數名稱": common_params,
-        "數值": [row[col] for col in common_params]
-    })
-    st.dataframe(transposed_df, use_container_width=True)
-
-
-    chart_title = st.text_input("🖋️ 圖表標題", value="跨檔案多欄位比較圖", key="chart_title_global")
+    # 圖表部分
+    chart_title = st.text_input("🖋️ 圖表標題", value="跨檔案多欄位比較圖")
 
     st.subheader("📈 同圖比較曲線圖")
     fig, ax = plt.subplots(figsize=(12, 5), dpi=200)
