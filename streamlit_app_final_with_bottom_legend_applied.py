@@ -27,7 +27,7 @@ common_params = [
     'GT Cores Power [W]',
     ' 1:NVVDD Power (W)',
     ' 1:FBVDD Power (W)',
-    'CPU Package [蟒]',
+    'CPU Package [蚓]',
     ' 1:Temperature GPU (C)',
     ' 1:Temperature Memory (C)',
     'SEN1-temp(Degree C)',
